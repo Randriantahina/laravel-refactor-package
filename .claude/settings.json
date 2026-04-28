@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Shan/Dev/laravel-refactor && ./vendor/bin/pest --no-coverage 2>&1 | tail -8"
+          }
+        ]
+      }
+    ]
+  }
+}
