@@ -83,9 +83,13 @@ class PhpFileUpdater
             // extends OldClass / implements OldClass, OtherClass
             $content = preg_replace('/\b(extends|implements)(\s+(?:[A-Za-z0-9_\\\\]+,\s*)*)'.preg_quote($oldClass, '/').'\b/', '$1$2'.$newClass, $content);
 
-            // function foo(OldClass $param) / : OldClass return type
+            // Simple type hint / return type: (OldClass $p, : OldClass, |OldClass, OldClass|, &OldClass, OldClass&
             $content = preg_replace('/([(:,\|&]\s*)'.preg_quote($oldClass, '/').'\b/', '$1'.$newClass, $content);
             $content = preg_replace('/\b'.preg_quote($oldClass, '/').'\s*\|/', $newClass.'|', $content);
+            $content = preg_replace('/\b'.preg_quote($oldClass, '/').'\s*&/', $newClass.'&', $content);
+
+            // Nullable type hint: ?OldClass
+            $content = preg_replace('/\?'.preg_quote($oldClass, '/').'\b/', '?'.$newClass, $content);
         }
 
         return $content;
