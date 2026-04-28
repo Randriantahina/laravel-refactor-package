@@ -1,0 +1,46 @@
+{
+    "name": "shan/laravel-refactor",
+    "description": "Rename PHP classes in Laravel and automatically update all references across the project.",
+    "type": "library",
+    "keywords": ["laravel", "refactor", "rename", "class", "namespace"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Shanjeev",
+            "email": "shanjeev24.apollon@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/console": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "nikic/php-parser": "^5.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "pestphp/pest": "^2.0|^3.0",
+        "pestphp/pest-plugin-laravel": "^2.0|^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Shan\\LaravelRefactor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Shan\\LaravelRefactor\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Shan\\LaravelRefactor\\LaravelRefactorServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
