@@ -4,3 +4,8 @@
 .phpunit.cache
 .pest.cache
 *.log
+
+# Claude Code local config (hooks sont personnels à chaque machine)
+.claude/settings.json
+.claude/settings.local.json
+CLAUDE.local.md
