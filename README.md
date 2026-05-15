@@ -104,6 +104,148 @@ ERROR: Class App\Models\Member already exists at app/Models/Member.php
 Rename aborted. Use --force to override (dangerous).
 ```
 
+## Testing locally before publishing
+
+You can test the package against a real Laravel project before pushing to Packagist.
+
+### 1. Create a fresh Laravel project (or use an existing one)
+
+```bash
+composer create-project laravel/laravel my-test-app
+cd my-test-app
+```
+
+### 2. Point Composer at your local package
+
+Add a `path` repository to `composer.json` in the Laravel project:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../laravel-refactor"
+        }
+    ]
+}
+```
+
+The `url` is the path from the Laravel project to the package directory — adjust it to match your folder layout.
+
+### 3. Install the package
+
+```bash
+composer require shan/laravel-refactor:@dev --dev
+```
+
+Composer creates a symlink to your local package. Any change you make in `laravel-refactor/src/` is immediately reflected — no need to reinstall.
+
+### 4. Create test fixtures
+
+Create a few classes and references to exercise the different scenarios:
+
+```bash
+# Source class
+php artisan make:model User
+
+# A class that references it
+php artisan make:controller UserController
+```
+
+Open `app/Http/Controllers/UserController.php` and add a reference:
+
+```php
+use App\Models\User;
+
+class UserController extends Controller
+{
+    public function index(): User
+    {
+        return new User();
+    }
+}
+```
+
+Optionally add a Blade template:
+
+```bash
+echo "@inject('user', 'App\Models\User')" > resources/views/users/show.blade.php
+```
+
+### 5. Run through the checklist
+
+**Dry-run first — never skip this step:**
+
+```bash
+php artisan refactor:rename "App\Models\User" "App\Models\Member" --dry-run
+```
+
+Expected output: a list of every file and line that would change. No files are modified.
+
+**Apply the rename:**
+
+```bash
+php artisan refactor:rename "App\Models\User" "App\Models\Member"
+```
+
+Check that:
+- `app/Models/User.php` no longer exists
+- `app/Models/Member.php` exists with `class Member` and `namespace App\Models`
+- `app/Http/Controllers/UserController.php` now has `use App\Models\Member` and `Member` everywhere
+- `resources/views/users/show.blade.php` references `App\Models\Member`
+- `composer dump-autoload` ran automatically (verify with `php artisan tinker` → `App\Models\Member::class`)
+
+**Roll back:**
+
+```bash
+php artisan refactor:rename "App\Models\User" "App\Models\Member" --rollback
+```
+
+Check that all files are back to their original state.
+
+**Move (namespace change):**
+
+```bash
+php artisan refactor:move "App\Models\Member" "App\Domain\Users\Member"
+```
+
+Check that:
+- `app/Domain/Users/Member.php` exists (directory was created)
+- `namespace App\Domain\Users;` is in the file
+- `app/Http/Controllers/UserController.php` imports `use App\Domain\Users\Member`
+
+**Conflict detection:**
+
+```bash
+php artisan refactor:rename "App\Models\Post" "App\Models\Member"
+```
+
+Expected: an error saying `Member` already exists. Then:
+
+```bash
+php artisan refactor:rename "App\Models\Post" "App\Models\Member" --force
+```
+
+**Publish and customise config:**
+
+```bash
+php artisan vendor:publish --tag=laravel-refactor-config
+```
+
+Open `config/laravel-refactor.php` and add a path to `scan_paths` (e.g. `'src'`). Re-run a dry-run to confirm the new path is scanned.
+
+### 6. Run the package's own test suite
+
+Back in the `laravel-refactor` directory:
+
+```bash
+./vendor/bin/pest --no-coverage
+```
+
+All 79 tests should be green before publishing.
+
+---
+
 ## Requirements
 
 - PHP 8.1+

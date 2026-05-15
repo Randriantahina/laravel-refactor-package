@@ -1,6 +1,7 @@
 /vendor/
 /node_modules/
 .env
+.env.testing
 .phpunit.cache
 .pest.cache
 *.log
