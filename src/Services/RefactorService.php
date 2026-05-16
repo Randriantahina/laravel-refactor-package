@@ -57,8 +57,21 @@ class RefactorService
         $affectedFiles = array_unique(array_map(fn (ReferenceMatch $m) => $m->file, $allMatches));
         $affectedFiles[] = $sourcePath;
 
+        $targetPath   = $this->namespaceResolver->fqcnToPath($op->newFqcn);
+        $createdFiles = [];
+
+        if ($targetPath !== null && $sourcePath !== $targetPath) {
+            if ($op->force && file_exists($targetPath)) {
+                // --force: target exists and will be overwritten — back it up so rollback can restore it.
+                $affectedFiles[] = $targetPath;
+            } else {
+                // Normal case: target file will be newly created — mark it for deletion on rollback.
+                $createdFiles[] = $targetPath;
+            }
+        }
+
         $operationId = date('YmdHis').'_'.substr(md5($op->oldFqcn), 0, 6);
-        $this->rollbackService->snapshot($operationId, $affectedFiles);
+        $this->rollbackService->snapshot($operationId, array_unique($affectedFiles), $createdFiles);
 
         // 5. Update references in other files
         $updatedFiles = [];
@@ -76,8 +89,7 @@ class RefactorService
             }
         }
 
-        // 6. Rename/move the source file
-        $targetPath = $this->namespaceResolver->fqcnToPath($op->newFqcn);
+        // 6. Rename/move the source file (targetPath already computed above)
 
         if ($targetPath !== null) {
             $targetDir = dirname($targetPath);

@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Shan\LaravelRefactor\DTOs\ReferenceMatch;
 use Shan\LaravelRefactor\DTOs\RenameOperation;
 use Shan\LaravelRefactor\Services\RefactorService;
+use Shan\LaravelRefactor\Services\RollbackService;
 
 class MoveCommand extends Command
 {
@@ -13,12 +14,17 @@ class MoveCommand extends Command
         {old : The fully-qualified class name to move (e.g. App\\Models\\User)}
         {new : The new fully-qualified class name with target namespace (e.g. App\\Domain\\Users\\User)}
         {--dry-run : Preview changes without modifying files}
+        {--rollback : Restore files from the last move snapshot}
         {--force : Override if the target class already exists}';
 
     protected $description = 'Move a PHP class to a new namespace and update all references.';
 
-    public function handle(RefactorService $refactor): int
+    public function handle(RefactorService $refactor, RollbackService $rollback): int
     {
+        if ($this->option('rollback')) {
+            return $this->runRollback($rollback);
+        }
+
         $old = $this->argument('old');
         $new = $this->argument('new');
 
@@ -63,8 +69,28 @@ class MoveCommand extends Command
 
         $this->newLine();
         $updated = count($result['updatedFiles']);
-        $refs = count($result['matches']);
+        $refs    = count($result['matches']);
         $this->components->success("{$refs} reference(s) updated across {$updated} file(s).");
+
+        return self::SUCCESS;
+    }
+
+    private function runRollback(RollbackService $rollback): int
+    {
+        $restored = $rollback->restore();
+
+        if (empty($restored)) {
+            $this->components->warn('No snapshot found to restore.');
+
+            return self::FAILURE;
+        }
+
+        foreach ($restored as $file) {
+            $this->line("  <fg=cyan>restored</> {$file}");
+        }
+
+        $this->newLine();
+        $this->components->success(count($restored).' file(s) restored.');
 
         return self::SUCCESS;
     }

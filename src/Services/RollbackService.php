@@ -15,9 +15,10 @@ class RollbackService
     /**
      * Save snapshots of all files that will be modified.
      *
-     * @param string[] $files
+     * @param string[] $files        Files to back up (will be restored on rollback).
+     * @param string[] $createdFiles Files that will be newly created (will be deleted on rollback).
      */
-    public function snapshot(string $operationId, array $files): void
+    public function snapshot(string $operationId, array $files, array $createdFiles = []): void
     {
         $dir = $this->snapshotDir.DIRECTORY_SEPARATOR.$operationId;
 
@@ -38,7 +39,11 @@ class RollbackService
             $manifest[$hash] = $file;
         }
 
-        file_put_contents($dir.DIRECTORY_SEPARATOR.'manifest.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        file_put_contents($dir.DIRECTORY_SEPARATOR.'manifest.json', json_encode([
+            'files'         => $manifest,
+            'created_files' => array_values($createdFiles),
+        ], JSON_PRETTY_PRINT));
+
         file_put_contents($this->snapshotDir.DIRECTORY_SEPARATOR.'latest.txt', $operationId);
     }
 
@@ -53,21 +58,30 @@ class RollbackService
             return [];
         }
 
-        $dir = $this->snapshotDir.DIRECTORY_SEPARATOR.$operationId;
+        $dir          = $this->snapshotDir.DIRECTORY_SEPARATOR.$operationId;
         $manifestFile = $dir.DIRECTORY_SEPARATOR.'manifest.json';
 
         if (! file_exists($manifestFile)) {
             return [];
         }
 
-        $manifest = json_decode(file_get_contents($manifestFile), true);
+        $data = json_decode(file_get_contents($manifestFile), true);
+
+        // Backward-compat: old format was a flat {hash: path} map.
+        if (isset($data['files'])) {
+            $manifest     = $data['files'];
+            $createdFiles = $data['created_files'] ?? [];
+        } else {
+            $manifest     = $data;
+            $createdFiles = [];
+        }
+
         $restored = [];
 
         foreach ($manifest as $hash => $originalPath) {
             $backup = $dir.DIRECTORY_SEPARATOR.$hash.'.bak';
 
             if (file_exists($backup)) {
-                // Recreate directory if needed (in case file was moved)
                 $targetDir = dirname($originalPath);
                 if (! is_dir($targetDir)) {
                     mkdir($targetDir, 0755, true);
@@ -75,6 +89,13 @@ class RollbackService
 
                 copy($backup, $originalPath);
                 $restored[] = $originalPath;
+            }
+        }
+
+        // Delete files that were created by the operation (didn't exist before).
+        foreach ($createdFiles as $path) {
+            if (file_exists($path)) {
+                unlink($path);
             }
         }
 

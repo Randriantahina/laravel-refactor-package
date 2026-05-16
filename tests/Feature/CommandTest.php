@@ -117,3 +117,30 @@ it('refactor:move exits with failure when source class is missing', function () 
         'new' => 'App\\Domain\\Users\\Ghost',
     ])->assertExitCode(1);
 });
+
+it('refactor:move --rollback restores files and exits success', function () {
+    $source          = $this->createPhpClass('App\\Models\\User', 'class User {}');
+    $originalContent = file_get_contents($source);
+
+    $this->artisan('refactor:move', [
+        'old' => 'App\\Models\\User',
+        'new' => 'App\\Domain\\Users\\User',
+    ])->run();
+
+    $this->artisan('refactor:move', [
+        'old'        => 'App\\Models\\User',
+        'new'        => 'App\\Domain\\Users\\User',
+        '--rollback' => true,
+    ])->assertExitCode(0);
+
+    expect(file_exists($source))->toBeTrue();
+    expect(file_get_contents($source))->toBe($originalContent);
+});
+
+it('refactor:move --rollback exits failure when no snapshot exists', function () {
+    $this->artisan('refactor:move', [
+        'old'        => 'App\\Models\\User',
+        'new'        => 'App\\Domain\\Users\\User',
+        '--rollback' => true,
+    ])->assertExitCode(1);
+});
