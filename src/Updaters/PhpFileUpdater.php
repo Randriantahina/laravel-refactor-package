@@ -62,13 +62,20 @@ class PhpFileUpdater
             $content,
         );
 
-        // Replace namespace declaration if it changed
+        // When the namespace changed, ensure the referencing file has a use statement for the
+        // moved class. Never touch this file's own namespace declaration — only updateSelf() does that.
         if ($oldNs !== $newNs) {
-            $content = preg_replace(
-                '/^namespace\s+'.preg_quote($oldNs, '/').'\s*;/m',
-                'namespace '.$newNs.';',
-                $content,
-            );
+            $alreadyHasUse = (bool) preg_match('/\buse\s+'.preg_quote($newFqcn, '/').'[\s;{]/m', $content);
+
+            if (! $alreadyHasUse) {
+                if (preg_match('/^use\s+/m', $content)) {
+                    // Inject before the first existing use statement
+                    $content = preg_replace('/^(use\s+)/m', "use {$newFqcn};\n$1", $content, 1);
+                } else {
+                    // No use statements yet — inject after the namespace declaration line
+                    $content = preg_replace('/(^namespace\s+[^;]+;\n)/m', "$1\nuse {$newFqcn};\n", $content, 1);
+                }
+            }
         }
 
         // Replace short name usages (new User, User::, extends User, implements User, type hints)

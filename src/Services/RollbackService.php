@@ -92,10 +92,26 @@ class RollbackService
             }
         }
 
-        // Delete files that were created by the operation (didn't exist before).
+        // Delete files that were created by the operation (didn't exist before),
+        // then clean up any empty parent directories.
+        $baseLen = strlen(rtrim($this->basePath, '/\\'));
+
         foreach ($createdFiles as $path) {
             if (file_exists($path)) {
                 unlink($path);
+            }
+
+            $dir = dirname($path);
+
+            while (strlen(rtrim($dir, '/\\')) > $baseLen && is_dir($dir)) {
+                $entries = array_diff(scandir($dir), ['.', '..']);
+
+                if (empty($entries)) {
+                    rmdir($dir);
+                    $dir = dirname($dir);
+                } else {
+                    break;
+                }
             }
         }
 

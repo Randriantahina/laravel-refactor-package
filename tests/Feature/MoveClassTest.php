@@ -84,6 +84,27 @@ it('handles simultaneous rename and move', function () {
     expect($content)->toContain('class Member');
 });
 
+it('does not corrupt the namespace of a referencing file in the same namespace', function () {
+    $this->createPhpClass('App\\Models\\TestAnimal', 'class TestAnimal {}');
+    $referrer = $this->createPhpClass('App\\Models\\TestDog', 'class TestDog extends TestAnimal {}');
+
+    $this->refactor()->run(new RenameOperation('App\\Models\\TestAnimal', 'App\\Domain\\Animals\\TestAnimal'));
+
+    $content = file_get_contents($referrer);
+    expect($content)->toContain('namespace App\\Models;');
+    expect($content)->not->toContain('namespace App\\Domain\\Animals;');
+});
+
+it('injects a use statement when moving a class referenced without an explicit import', function () {
+    $this->createPhpClass('App\\Models\\TestAnimal', 'class TestAnimal {}');
+    $referrer = $this->createPhpClass('App\\Models\\TestDog', 'class TestDog extends TestAnimal {}');
+
+    $this->refactor()->run(new RenameOperation('App\\Models\\TestAnimal', 'App\\Domain\\Animals\\TestAnimal'));
+
+    $content = file_get_contents($referrer);
+    expect($content)->toContain('use App\\Domain\\Animals\\TestAnimal;');
+});
+
 it('updates use statement when only namespace changes and class name stays', function () {
     $this->createPhpClass('App\\Models\\User', 'class User {}');
 

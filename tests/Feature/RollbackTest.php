@@ -112,6 +112,20 @@ it('returns the list of restored files', function () {
     expect($restored)->toContain($referrer);
 });
 
+it('removes empty directories created during a move after rollback', function () {
+    $this->createPhpClass('App\\Models\\TestAnimal', 'class TestAnimal {}');
+
+    $this->refactor()->run(new RenameOperation('App\\Models\\TestAnimal', 'App\\Domain\\Animals\\TestAnimal'));
+
+    $resolver  = $this->app->make(NamespaceResolver::class);
+    $targetDir = dirname($resolver->fqcnToPath('App\\Domain\\Animals\\TestAnimal'));
+    expect(is_dir($targetDir))->toBeTrue();
+
+    $this->refactor()->rollback();
+
+    expect(is_dir($targetDir))->toBeFalse();
+});
+
 it('rollback returns empty array when no snapshot exists', function () {
     $restored = $this->refactor()->rollback();
 
