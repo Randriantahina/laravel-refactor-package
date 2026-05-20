@@ -1,5 +1,5 @@
 {
-    "name": "shan/laravel-refactor",
+    "name": "shan/artisan-refactor",
     "description": "Rename PHP classes in Laravel and automatically update all references across the project.",
     "type": "library",
     "keywords": ["laravel", "refactor", "rename", "class", "namespace"],

@@ -5,7 +5,7 @@ Rename or move PHP classes in your Laravel project and automatically update ever
 ## Installation
 
 ```bash
-composer require shan/laravel-refactor --dev
+composer require shan/artisan-refactor --dev
 ```
 
 Laravel auto-discovers the service provider. Optionally publish the config:
@@ -135,7 +135,7 @@ The `url` is the path from the Laravel project to the package directory — adju
 ### 3. Install the package
 
 ```bash
-composer require shan/laravel-refactor:@dev --dev
+composer require shan/artisan-refactor:@dev --dev
 ```
 
 Composer creates a symlink to your local package. Any change you make in `laravel-refactor/src/` is immediately reflected — no need to reinstall.
